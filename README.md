@@ -1,6 +1,6 @@
 # Taming Effect Traits with Taskless
 
-A set of coding traits for [Effect](https://effect.website) showed up in [this thread](THREAD_URL). They're the kind of guidance every team writes for its agents: prefer `Array.map(items, f)` over `items.map(f)`, don't hand-roll retry loops, provide layers once at the entry point. Each one is a markdown file the agent is supposed to read and follow.
+A set of coding traits for [Effect](https://effect.website) showed up in [a thread from Harry Solovay](https://x.com/harrysolovay/status/2108861173894672518). They're the kind of guidance every team writes for its agents: prefer `Array.map(items, f)` over `items.map(f)`, don't hand-roll retry loops, provide layers once at the entry point. Each one is a markdown file the agent is supposed to read and follow.
 
 I wanted to see how many of them could become real rules. So I started from an empty repo, gave Claude the traits one at a time, and let Taskless do the rest.
 
