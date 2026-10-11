@@ -1,0 +1,65 @@
+id: no-effect-promise-wrapper
+language: TypeScript
+severity: warning
+message: This helper only wraps `Effect.promise`; call `Effect.promise(() => ...)` directly at the Promise boundary instead.
+note: |
+  Generic helpers that merely forward to `Effect.promise` add an indirection
+  without adding behavior. Use `Effect.promise` at each Promise boundary:
+
+  - `fromPromise(() => client.run())` → `Effect.promise(() => client.run())`
+
+  Delete the helper and replace its call sites. Helpers that add behavior
+  (a span, error mapping via `Effect.tryPromise`, retries) or that adapt a
+  specific API (`(sql) => Effect.promise(() => db.query(sql))`) are fine.
+utils:
+  # Body expressions that only forward the single parameter $A
+  forwards-to-effect-promise:
+    any:
+      - pattern: Effect.promise($A)
+      - pattern: Effect.promise(() => $A())
+      - pattern: Effect.promise(($S) => $A($S))
+  # The function has exactly one parameter, bound to $A
+  single-param:
+    has:
+      field: parameters
+      kind: formal_parameters
+      not:
+        has:
+          nthChild: 2
+      has:
+        kind: required_parameter
+        has:
+          field: pattern
+          kind: identifier
+          pattern: $A
+  # Body is the forwarding expression, or a block whose only statement returns it
+  forwarding-body:
+    has:
+      field: body
+      any:
+        - matches: forwards-to-effect-promise
+        - kind: statement_block
+          not:
+            has:
+              nthChild: 2
+          has:
+            kind: return_statement
+            nthChild: 1
+            has:
+              matches: forwards-to-effect-promise
+rule:
+  any:
+    # const fromPromise = (f) => Effect.promise(f)
+    # function fromPromise(f) { return Effect.promise(f) }
+    - any:
+        - kind: arrow_function
+        - kind: function_expression
+        - kind: function_declaration
+      all:
+        - matches: single-param
+        - matches: forwarding-body
+    # const fromPromise = Effect.promise
+    - kind: variable_declarator
+      has:
+        field: value
+        pattern: Effect.promise

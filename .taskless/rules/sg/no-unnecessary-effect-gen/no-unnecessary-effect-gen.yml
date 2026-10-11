@@ -1,0 +1,71 @@
+id: no-unnecessary-effect-gen
+language: TypeScript
+severity: warning
+message: This `Effect.gen` does no effectful work and only returns an existing value, Effect, or Layer; use that value directly.
+note: |
+  A generator is only needed to sequence effectful work. When the body is a
+  single `return` of something that already exists, drop the wrapper:
+
+  - `Effect.gen(function* () { return layer }).pipe(Layer.unwrap)` → `layer`
+  - `Effect.gen(function* () { return yield* program })`         → `program`
+  - `Effect.gen(function* () { return yield* Effect.fail(e) })`  → `Effect.fail(e)`
+  - `Effect.gen(function* () { return config })`                 → `Effect.succeed(config)`
+
+  Keep the generator when it sequences effectful work (more than one step,
+  or `yield*` used inside a larger expression). If the returned expression
+  evaluates something that must stay lazy (e.g. `Effect.succeed(Date.now())`),
+  keep the deferral with `Effect.suspend` / `Effect.sync` instead.
+utils:
+  # An existing value: a name, a property of one, or a pure module
+  # constructor like Layer.succeed(...) / Effect.fail(...)
+  existing-value:
+    any:
+      - kind: identifier
+      - kind: member_expression
+      - kind: call_expression
+        has:
+          field: function
+          kind: member_expression
+          has:
+            field: object
+            kind: identifier
+            regex: ^[A-Z]
+rule:
+  kind: call_expression
+  all:
+    - has:
+        field: function
+        kind: member_expression
+        pattern: Effect.gen
+    - has:
+        field: arguments
+        has:
+          kind: generator_function
+          has:
+            field: body
+            kind: statement_block
+            # exactly one statement, and it is a return
+            not:
+              has:
+                nthChild: 2
+            has:
+              kind: return_statement
+              nthChild: 1
+              any:
+                # return value
+                - has:
+                    matches: existing-value
+                    not:
+                      has:
+                        kind: yield_expression
+                        stopBy: end
+                # return yield* effect
+                - has:
+                    kind: yield_expression
+                    regex: ^yield\s*\*
+                    has:
+                      matches: existing-value
+                      not:
+                        has:
+                          kind: yield_expression
+                          stopBy: end

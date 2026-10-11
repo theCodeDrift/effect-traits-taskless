@@ -1,0 +1,33 @@
+id: prefer-mutation-over-copy-reassign
+valid:
+  - |
+    const out: Array<number> = []
+    for (const n of input) {
+      out.push(n)
+    }
+  - |
+    import { Array } from "effect"
+    const next = Array.append(items, value)
+  - |
+    import { Array } from "effect"
+    other = Array.append(items, value)
+  - |
+    const merged = [...left, ...right]
+invalid:
+  - |
+    import { Array } from "effect"
+    let items: Array<number> = []
+    for (const n of input) {
+      items = Array.append(items, n)
+    }
+  - |
+    import { Array } from "effect"
+    acc = Array.appendAll(acc, batch)
+  - |
+    acc = [...acc, value]
+  - |
+    acc = [value, ...acc]
+  - |
+    acc = acc.concat(batch)
+  - |
+    state.items = Array.append(state.items, value)

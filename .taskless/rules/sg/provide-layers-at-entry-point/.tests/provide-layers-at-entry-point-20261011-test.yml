@@ -1,0 +1,42 @@
+id: provide-layers-at-entry-point
+valid:
+  - |
+    import { Effect } from "effect"
+    export const findUser = (id: string) =>
+      Effect.gen(function* () {
+        const db = yield* Database
+        return yield* db.findUser(id)
+      })
+  - |
+    import { Effect } from "effect"
+    const handle = (tenantId: string) =>
+      query.pipe(Effect.provide(TenantDb.layer(tenantId)))
+  - |
+    import { Effect, Layer } from "effect"
+    const handle = (ctx: Ctx) =>
+      handler.pipe(Effect.provide(Layer.succeed(RequestContext, ctx)))
+  - |
+    import { Effect } from "effect"
+    const handle = (cfg: Cfg) => {
+      const tenantLayer = makeTenantLayer(cfg)
+      return query.pipe(Effect.provide(tenantLayer))
+    }
+  - |
+    import { Layer } from "effect"
+    export const UsersLive = Users.layer.pipe(Layer.provide(Database.layer))
+invalid:
+  - |
+    import { Effect } from "effect"
+    export const listUsers = query.pipe(Effect.provide(Database.layer))
+  - |
+    import { Effect } from "effect"
+    export const listUsers = Effect.provide(query, Database.Default)
+  - |
+    import { Effect } from "effect"
+    export const handler = (req: Request) =>
+      handle(req).pipe(Effect.provide(MainLive))
+  - |
+    import { Effect, Layer } from "effect"
+    export const sync = job.pipe(
+      Effect.provide(Layer.mergeAll(Database.layer, HttpClient.layer))
+    )

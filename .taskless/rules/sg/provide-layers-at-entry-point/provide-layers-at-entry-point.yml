@@ -1,0 +1,70 @@
+id: provide-layers-at-entry-point
+language: TypeScript
+severity: warning
+message: Provide shared layers once at the program entry point (e.g. `program.pipe(Effect.provide(Database.layer))` in the CLI main), not per call in inner modules.
+note: |
+  Inner modules and handlers should declare their service dependencies (via
+  the Effect's `R` type) and let the outermost program boundary satisfy them:
+
+  ```ts
+  // src/main.ts
+  program.pipe(Effect.provide(Database.layer))
+  ```
+
+  rather than `query.pipe(Effect.provide(Database.layer))` inside a module.
+
+  Keep local provisioning when the dependency's scope or configuration is
+  genuinely local to the call, e.g. a layer built from per-request input
+  (`Effect.provide(TenantDb.layer(tenantId))`) or an inline
+  `Layer.succeed(RequestContext, ctx)`. Those are not flagged.
+
+  Entry points and tests are excluded via `ignores` below; adjust the globs
+  to match this project's entry files.
+ignores:
+  # Program boundaries
+  - "**/main.ts"
+  - "**/cli.ts"
+  - "**/bin/**"
+  # Tests provide their own layers at the test boundary
+  - "**/*.test.ts"
+  - "**/*.spec.ts"
+  - "**/test/**"
+  - "**/tests/**"
+utils:
+  # A pre-built, program-wide layer: Database.layer, Database.Default, MainLive,
+  # or a static merge of those. Calls with arguments (locally configured) are excluded.
+  shared-layer:
+    any:
+      - kind: identifier
+        regex: ^[A-Z]
+      - kind: member_expression
+        has:
+          field: object
+          kind: identifier
+          regex: ^[A-Z]
+      - kind: call_expression
+        all:
+          - has:
+              field: function
+              kind: member_expression
+              regex: ^Layer\.(merge|mergeAll|provide|provideMerge)$
+          - not:
+              has:
+                field: arguments
+                has:
+                  kind: call_expression
+rule:
+  kind: call_expression
+  all:
+    - has:
+        field: function
+        kind: member_expression
+        pattern: Effect.provide
+    - has:
+        field: arguments
+        has:
+          # the layer is the last argument (pipeable and data-first forms)
+          nthChild:
+            position: 1
+            reverse: true
+          matches: shared-layer

@@ -1,0 +1,43 @@
+id: no-destructured-selector-callback
+language: TypeScript
+severity: warning
+message: Use direct property access in selector callbacks (`(v) => v.id`), not parameter destructuring (`({ id }) => id`).
+note: |
+  For arrow callbacks that select a property or build an object from
+  properties, take the whole value and access its properties directly:
+
+  - `Array.map(users, ({ id }) => id)`              → `Array.map(users, (u) => u.id)`
+  - `items.map(({ id, name }) => ({ id, name }))`  → `items.map((v) => ({ id: v.id, name: v.name }))`
+  - `Effect.map(({ user }) => user.name)`          → `Effect.map((r) => r.user.name)`
+
+  Destructuring is still fine when it is needed for behavior, e.g. a rest
+  pattern that omits keys (`({ password, ...rest }) => rest`), and in
+  callbacks with block bodies or that compute rather than select.
+rule:
+  kind: arrow_function
+  inside:
+    kind: arguments
+  has:
+    field: parameters
+    kind: formal_parameters
+    has:
+      kind: required_parameter
+      has:
+        field: pattern
+        kind: object_pattern
+        not:
+          # `({ secret, ...rest }) => rest` needs destructuring to omit keys
+          has:
+            kind: rest_pattern
+  all:
+    - has:
+        field: body
+        any:
+          # select: ({ id }) => id
+          - kind: identifier
+          # select through: ({ user }) => user.name
+          - kind: member_expression
+          # construct: ({ id, name }) => ({ id, name })
+          - kind: parenthesized_expression
+            has:
+              kind: object

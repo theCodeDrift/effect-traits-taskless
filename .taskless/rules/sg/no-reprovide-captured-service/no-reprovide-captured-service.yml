@@ -1,0 +1,46 @@
+id: no-reprovide-captured-service
+language: TypeScript
+severity: warning
+message: This service was captured with `yield*` and is being re-provided per call; let the inner effect declare the dependency and have the outer layers satisfy it.
+note: |
+  Capturing a service and providing it again to an inner call hides the
+  dependency from the type of the inner effect:
+
+  ```ts
+  const db = yield* Database
+  return yield* handler.pipe(Effect.provideService(Database, db))
+  ```
+
+  Instead, let `handler` keep `Database` in its requirements and run it
+  directly (`return yield* handler`). The outermost program provides it once.
+
+  Keep local provisioning only when the provided value is genuinely local to
+  the call (e.g. a per-request context built from input), not one captured
+  from the surrounding environment.
+rule:
+  kind: call_expression
+  any:
+    # const db = yield* Database ... provideService(Database, db)
+    - all:
+        - any:
+            - pattern: Effect.provideService($TAG, $V)
+            - pattern: Effect.provideService($E, $TAG, $V)
+            - pattern: Effect.provide(Layer.succeed($TAG, $V))
+            - pattern: Effect.provide($E, Layer.succeed($TAG, $V))
+        - inside:
+            stopBy: end
+            kind: statement_block
+            has:
+              stopBy: end
+              pattern: const $V = yield* $TAG
+    # const ctx = yield* Effect.context<Database>() ... Effect.provide(ctx)
+    - all:
+        - any:
+            - pattern: Effect.provide($V)
+            - pattern: Effect.provide($E, $V)
+        - inside:
+            stopBy: end
+            kind: statement_block
+            has:
+              stopBy: end
+              pattern: const $V = yield* Effect.context<$$$T>()

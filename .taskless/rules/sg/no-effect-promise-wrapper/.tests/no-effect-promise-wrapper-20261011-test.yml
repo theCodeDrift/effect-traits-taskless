@@ -1,0 +1,55 @@
+id: no-effect-promise-wrapper
+valid:
+  - |
+    import { Effect } from "effect"
+    const result = Effect.promise(() => client.run())
+  - |
+    import { Effect } from "effect"
+    const runQuery = (sql: string) => Effect.promise(() => db.query(sql))
+  - |
+    import { Effect } from "effect"
+    const traced = <A>(f: () => Promise<A>) =>
+      Effect.promise(f).pipe(Effect.withSpan("promise"))
+  - |
+    import { Effect } from "effect"
+    const fromPromise = <A>(f: () => Promise<A>) =>
+      Effect.tryPromise({ try: f, catch: (e) => new ClientError({ cause: e }) })
+  - |
+    import { Effect } from "effect"
+    function fromPromise<A>(f: () => Promise<A>) {
+      log("starting")
+      return Effect.promise(f)
+    }
+  - |
+    import { Effect } from "effect"
+    const p = Effect.promise(() => fetchThing())
+  - |
+    import { Effect } from "effect"
+    const withDefault = (fallback: () => Promise<number>) => Effect.promise(loadPrimary)
+invalid:
+  - |
+    import { Effect } from "effect"
+    const fromPromise = <A>(f: () => Promise<A>) => Effect.promise(f)
+  - |
+    import { Effect } from "effect"
+    export const fromPromise = <A>(f: () => Promise<A>) => Effect.promise(() => f())
+  - |
+    import { Effect } from "effect"
+    export function fromPromise<A>(f: () => Promise<A>) {
+      return Effect.promise(f)
+    }
+  - |
+    import { Effect } from "effect"
+    const fromPromise = <A>(f: (signal: AbortSignal) => Promise<A>) => {
+      return Effect.promise((signal) => f(signal))
+    }
+  - |
+    import { Effect } from "effect"
+    export const fromPromise = Effect.promise
+  - |
+    import { Effect } from "effect"
+    const helpers = {
+      fromPromise: function <A>(thunk: () => Promise<A>) {
+        return Effect.promise(thunk)
+      },
+    }

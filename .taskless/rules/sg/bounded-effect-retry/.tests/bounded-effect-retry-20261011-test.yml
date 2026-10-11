@@ -1,0 +1,41 @@
+id: bounded-effect-retry
+valid:
+  - |
+    import { Effect, Schedule } from "effect"
+    const fetched = request.pipe(
+      Effect.retry({ times: 3, while: isTransient, schedule: Schedule.exponential("100 millis") })
+    )
+  - |
+    import { Effect, Schedule } from "effect"
+    const fetched = request.pipe(
+      Effect.retry(Schedule.exponential("100 millis").pipe(Schedule.intersect(Schedule.recurs(3))))
+    )
+  - |
+    import { Effect, Schedule } from "effect"
+    const fetched = Effect.retry(request, Schedule.recurs(2))
+  - |
+    import { Effect, Schedule } from "effect"
+    const fetched = request.pipe(
+      Effect.retry({ schedule: Schedule.spaced("1 second").pipe(Schedule.upTo("30 seconds")) })
+    )
+  - |
+    import { Effect } from "effect"
+    const fetched = request.pipe(Effect.retry(retryPolicy))
+invalid:
+  - |
+    import { Effect, Schedule } from "effect"
+    const fetched = request.pipe(Effect.retry(Schedule.exponential("100 millis")))
+  - |
+    import { Effect, Schedule } from "effect"
+    const fetched = request.pipe(Effect.retry(Schedule.forever))
+  - |
+    import { Effect, Schedule } from "effect"
+    const fetched = request.pipe(
+      Effect.retry({ while: isTransient, schedule: Schedule.spaced("1 second") })
+    )
+  - |
+    import { Effect, Schedule } from "effect"
+    const fetched = Effect.retry(request, Schedule.spaced("1 second"))
+  - |
+    import { Effect } from "effect"
+    const fetched = request.pipe(Effect.retry({ until: isPermanent }))

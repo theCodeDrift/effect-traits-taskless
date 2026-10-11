@@ -1,0 +1,61 @@
+id: no-reprovide-captured-service
+valid:
+  - |
+    import { Effect } from "effect"
+    const program = Effect.gen(function* () {
+      const db = yield* Database
+      yield* db.migrate
+      return yield* handler
+    })
+  - |
+    import { Effect } from "effect"
+    const handle = (req: Request) =>
+      Effect.gen(function* () {
+        const ctx = makeRequestContext(req)
+        return yield* handler.pipe(Effect.provideService(RequestContext, ctx))
+      })
+  - |
+    import { Effect } from "effect"
+    const program = Effect.gen(function* () {
+      const db = yield* Database
+      return yield* handler.pipe(Effect.provideService(Cache, db.cache))
+    })
+  - |
+    import { Effect } from "effect"
+    const program = Effect.gen(function* () {
+      const tenantLayer = yield* buildTenantLayer
+      return yield* handler.pipe(Effect.provide(tenantLayer))
+    })
+invalid:
+  - |
+    import { Effect } from "effect"
+    const program = Effect.gen(function* () {
+      const db = yield* Database
+      return yield* handler.pipe(Effect.provideService(Database, db))
+    })
+  - |
+    import { Effect } from "effect"
+    const program = Effect.gen(function* () {
+      const db = yield* Database
+      return yield* Effect.forEach(jobs, (job) =>
+        runJob(job).pipe(Effect.provideService(Database, db))
+      )
+    })
+  - |
+    import { Effect, Layer } from "effect"
+    const program = Effect.gen(function* () {
+      const http = yield* HttpClient
+      return yield* fetchAll.pipe(Effect.provide(Layer.succeed(HttpClient, http)))
+    })
+  - |
+    import { Effect } from "effect"
+    const program = Effect.gen(function* () {
+      const ctx = yield* Effect.context<Database | Logger>()
+      return yield* Effect.provide(handler, ctx)
+    })
+  - |
+    import { Effect } from "effect"
+    const program = Effect.gen(function* () {
+      const db = yield* Database
+      return yield* Effect.provideService(handler, Database, db)
+    })

@@ -1,0 +1,35 @@
+id: no-destructured-selector-callback
+valid:
+  - |
+    import { Array } from "effect"
+    const ids = Array.map(users, (u) => u.id)
+  - |
+    const rows = items.map((v) => ({ id: v.id, name: v.name }))
+  - |
+    const safe = users.map(({ password, ...rest }) => rest)
+  - |
+    const totals = orders.map(({ price, qty }) => price * qty)
+  - |
+    users.forEach(({ id, name }) => {
+      log(id, name)
+    })
+  - |
+    const getId = ({ id }: User) => id
+  - |
+    const label = (u: User) => u.name
+invalid:
+  - |
+    import { Array } from "effect"
+    const ids = Array.map(users, ({ id }) => id)
+  - |
+    import { Array, pipe } from "effect"
+    const ids = pipe(users, Array.map(({ id }: User) => id))
+  - |
+    const rows = items.map(({ id, name }) => ({ id, name }))
+  - |
+    const rows = items.map(({ id, name }, index) => ({ id, label: name, index }))
+  - |
+    import { Effect } from "effect"
+    const program = Effect.map(loadSession, ({ user }) => user.name)
+  - |
+    const ids = items.map(({ meta: { id } }) => id)

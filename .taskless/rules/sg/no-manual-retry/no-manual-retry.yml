@@ -1,0 +1,97 @@
+id: no-manual-retry
+language: TypeScript
+severity: error
+message: 'Don''t hand-roll retry/backoff; use `Effect.retry` with a `Schedule` (e.g. `Effect.retry({ times: 3, while: isTransient, schedule: Schedule.exponential("100 millis") })`).'
+note: |
+  Retry loops with sleeps (and recursive "try again after a delay" helpers)
+  re-implement what Effect's retry and scheduling APIs already provide:
+
+  ```ts
+  request.pipe(
+    Effect.retry({
+      times: 3,
+      while: isTransient,
+      schedule: Schedule.exponential("100 millis"),
+    })
+  )
+  ```
+
+  Apply retries conservatively: bound the attempts and only retry failures
+  that are actually transient.
+utils:
+  # A delay: Effect.sleep(...), sleep(...), delay(...), setTimeout(...), x.sleep(...)
+  sleep-call:
+    kind: call_expression
+    has:
+      field: function
+      any:
+        - kind: identifier
+          regex: ^(sleep|delay|wait|setTimeout|backoff)$
+        - kind: member_expression
+          regex: \.(sleep|delay|wait|setTimeout|backoff)$
+  # Catching a failure so it can be tried again
+  failure-handling:
+    any:
+      - kind: try_statement
+      - kind: call_expression
+        has:
+          field: function
+          any:
+            - kind: member_expression
+              regex: ^Effect\.(either|exit|option|result|catch\w*|orElse\w*)$
+            # promise.catch(...)
+            - kind: member_expression
+              regex: \.catch$
+rule:
+  any:
+    # A loop that sleeps between attempts and catches failures
+    - any:
+        - kind: for_statement
+        - kind: for_in_statement
+        - kind: while_statement
+        - kind: do_statement
+      all:
+        - has:
+            matches: sleep-call
+            stopBy: end
+        - has:
+            matches: failure-handling
+            stopBy: end
+    # A function that sleeps and then calls itself again
+    - kind: function_declaration
+      all:
+        - has:
+            field: name
+            pattern: $F
+        - has:
+            field: body
+            all:
+              - has:
+                  matches: sleep-call
+                  stopBy: end
+              - has:
+                  kind: call_expression
+                  has:
+                    field: function
+                    pattern: $F
+                  stopBy: end
+    - kind: variable_declarator
+      all:
+        - has:
+            field: name
+            pattern: $F
+        - has:
+            field: value
+            any:
+              - kind: arrow_function
+              - kind: function_expression
+            all:
+              - has:
+                  matches: sleep-call
+                  stopBy: end
+              - has:
+                  kind: call_expression
+                  has:
+                    field: function
+                    pattern: $F
+                  stopBy: end

@@ -1,0 +1,69 @@
+id: prefer-effect-module-utilities
+language: TypeScript
+severity: warning
+message: Prefer the Effect module function over the built-in `.$METHOD(...)` (e.g. `Array.map(items, f)` instead of `items.map(f)`).
+note: |
+  Effect's `Array`, `Record`, `String`, `Number`, `Boolean`, `BigInt`, `RegExp`
+  and `Struct` modules provide data-first / pipeable equivalents of most
+  built-in methods. Prefer them:
+
+  - `items.map(f)`            → `Array.map(items, f)`
+  - `items.filter(p)`         → `Array.filter(items, p)`
+  - `items.find(p)`           → `Array.findFirst(items, p)` (returns `Option`)
+  - `items.join(", ")`        → `Array.join(items, ", ")`
+  - `s.toUpperCase()`         → `String.toUpperCase(s)`
+  - `s.split(",")`            → `String.split(s, ",")`
+  - `Object.keys(rec)`        → `Record.keys(rec)`
+  - `Object.entries(rec)`     → `Record.toEntries(rec)`
+
+  Keep the built-in when there is no suitable Effect equivalent, or when the
+  built-in is required to preserve behavior (e.g. a function replacer in
+  `.replace`, or a caller that relies on `undefined` rather than `Option`).
+
+  Mutating methods with no Effect mutation (`push`, `unshift`, `splice`,
+  in-place `sort`) are intentionally not flagged: for local mutable
+  accumulators, mutate in place.
+rule:
+  kind: call_expression
+  not:
+    # `acc = acc.concat(x)` is handled by prefer-mutation-over-copy-reassign
+    inside:
+      kind: assignment_expression
+      pattern: $ACC = $ACC.concat($$$)
+  has:
+    field: function
+    kind: member_expression
+    any:
+      # Instance methods: items.map(f), s.trim(), ...
+      - all:
+          - has:
+              field: property
+              kind: property_identifier
+              pattern: $METHOD
+              regex: ^(map|filter|reduce|reduceRight|find|findIndex|findLast|findLastIndex|some|every|flatMap|flat|forEach|includes|join|concat|toSorted|toReversed|toUpperCase|toLowerCase|trim|trimStart|trimEnd|split|startsWith|endsWith|replace|replaceAll|padStart|padEnd|repeat)$
+          - not:
+              # PascalCase receivers are module namespaces: Array.map, Effect.map, Option.map, Stream.filter...
+              has:
+                field: object
+                kind: identifier
+                regex: ^[A-Z]
+          - not:
+              # Node's path.join / path.posix.join are not array joins
+              has:
+                field: object
+                any:
+                  - kind: identifier
+                    regex: ^(path|posix|win32)$
+                  - kind: member_expression
+                    regex: ^path\.(posix|win32)$
+      # Static built-ins: Object.keys(rec), Object.values(rec), Object.entries(rec)
+      - all:
+          - has:
+              field: object
+              kind: identifier
+              regex: ^Object$
+          - has:
+              field: property
+              kind: property_identifier
+              pattern: $METHOD
+              regex: ^(keys|values|entries)$

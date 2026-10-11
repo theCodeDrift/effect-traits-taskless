@@ -1,0 +1,71 @@
+id: no-unnecessary-effect-gen
+valid:
+  - |
+    import { Effect } from "effect"
+    const program = Effect.gen(function* () {
+      const user = yield* getUser
+      const orders = yield* getOrders(user.id)
+      return orders
+    })
+  - |
+    import { Effect } from "effect"
+    const program = Effect.gen(function* () {
+      return (yield* getUser).name
+    })
+  - |
+    import { Effect } from "effect"
+    const program = Effect.gen(function* () {
+      return { user: yield* getUser, orders: yield* getOrders }
+    })
+  - |
+    import { Effect, Layer } from "effect"
+    const live = Effect.gen(function* () {
+      const config = yield* Config
+      return Layer.succeed(Db, makeDb(config))
+    }).pipe(Layer.unwrap)
+  - |
+    import { Effect } from "effect"
+    const program = Effect.gen(function* () {
+      return yield* fetchUser(id)
+    })
+  - |
+    import { Effect } from "effect"
+    const program = Effect.gen(function* () {
+      return computeTotals(items)
+    })
+  - |
+    import { Layer } from "effect"
+    const live = layer
+invalid:
+  - |
+    import { Effect, Layer } from "effect"
+    const live = Effect.gen(function* () {
+      return layer
+    }).pipe(Layer.unwrap)
+  - |
+    import { Effect, Layer } from "effect"
+    const live = Effect.gen(function* () {
+      return Layer.succeed(Db, db)
+    }).pipe(Layer.unwrap)
+  - |
+    import { Effect } from "effect"
+    const program = Effect.gen(function* () {
+      return yield* program
+    })
+  - |
+    import { Effect } from "effect"
+    const program = Effect.gen(function* () {
+      return yield* Effect.fail(new NotFound())
+    })
+  - |
+    import { Effect } from "effect"
+    const program = Effect.gen(function* () {
+      return config.defaults
+    })
+  - |
+    import { Effect } from "effect"
+    class Users {
+      list = Effect.gen(this, function* () {
+        return yield* this.repo.all
+      })
+    }

@@ -1,0 +1,50 @@
+id: bounded-effect-retry
+language: TypeScript
+severity: warning
+message: This `Effect.retry` has no bound on attempts; add `times` or bound the schedule (e.g. `Schedule.recurs(3)`, `Schedule.upTo(...)`).
+note: |
+  Apply retries conservatively. Schedules like `Schedule.exponential(...)`,
+  `Schedule.spaced(...)` and `Schedule.forever` retry indefinitely on their
+  own. Bound them, and only retry failures that are transient:
+
+  ```ts
+  request.pipe(
+    Effect.retry({
+      times: 3,
+      while: isTransient,
+      schedule: Schedule.exponential("100 millis"),
+    })
+  )
+  ```
+
+  or compose a limit into the schedule:
+  `Schedule.exponential("100 millis").pipe(Schedule.intersect(Schedule.recurs(3)))`.
+
+  Retry policies passed by name (`Effect.retry(retryPolicy)`) are not checked
+  here; make sure the named schedule is bounded where it is defined.
+utils:
+  # Something that limits the number or duration of retries
+  bounded:
+    has:
+      stopBy: end
+      kind: property_identifier
+      regex: ^(times|recurs|upTo|during)$
+rule:
+  kind: call_expression
+  all:
+    - has:
+        field: function
+        kind: member_expression
+        pattern: Effect.retry
+    - has:
+        field: arguments
+        has:
+          # the retry policy: an options object or an inline Schedule expression
+          any:
+            - kind: object
+            - kind: call_expression
+              regex: ^Schedule\.
+            - kind: member_expression
+              regex: ^Schedule\.
+          not:
+            matches: bounded

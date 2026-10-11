@@ -1,0 +1,89 @@
+id: no-manual-retry
+valid:
+  - |
+    import { Effect, Schedule } from "effect"
+    const fetched = request.pipe(
+      Effect.retry({ times: 3, while: isTransient, schedule: Schedule.exponential("100 millis") })
+    )
+  - |
+    for (const item of items) {
+      try {
+        process(item)
+      } catch (e) {
+        errors.push(e)
+      }
+    }
+  - |
+    import { Effect } from "effect"
+    const program = Effect.gen(function* () {
+      yield* Effect.sleep("1 second")
+      return yield* request
+    })
+  - |
+    import { Effect } from "effect"
+    const program = Effect.gen(function* () {
+      for (const job of jobs) {
+        yield* runJob(job)
+        yield* Effect.sleep("50 millis")
+      }
+    })
+  - |
+    function walk(node: Node): number {
+      return node.children.reduce((n, c) => n + walk(c), 1)
+    }
+invalid:
+  - |
+    async function fetchWithRetry(url: string) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          return await fetch(url)
+        } catch (e) {
+          await sleep(100 * 2 ** attempt)
+        }
+      }
+      throw new Error("failed")
+    }
+  - |
+    let attempts = 0
+    while (true) {
+      try {
+        await client.connect()
+        break
+      } catch {
+        attempts++
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+      }
+    }
+  - |
+    import { Effect, Either } from "effect"
+    const program = Effect.gen(function* () {
+      for (let i = 0; i < 5; i++) {
+        const result = yield* Effect.either(request)
+        if (Either.isRight(result)) return result.right
+        yield* Effect.sleep(`${100 * 2 ** i} millis`)
+      }
+      return yield* Effect.fail(new GaveUp())
+    })
+  - |
+    async function withRetry<A>(f: () => Promise<A>, n: number): Promise<A> {
+      try {
+        return await f()
+      } catch (e) {
+        if (n <= 0) throw e
+        await delay(500)
+        return withRetry(f, n - 1)
+      }
+    }
+  - |
+    import { Effect } from "effect"
+    const retrying = (n: number): Effect.Effect<Response, HttpError> =>
+      request.pipe(
+        Effect.catchAll((e) =>
+          n > 0 ? Effect.sleep("1 second").pipe(Effect.zipRight(retrying(n - 1))) : Effect.fail(e)
+        )
+      )
+  - |
+    do {
+      ok = await tryOnce().catch(() => false)
+      if (!ok) await sleep(250)
+    } while (!ok)

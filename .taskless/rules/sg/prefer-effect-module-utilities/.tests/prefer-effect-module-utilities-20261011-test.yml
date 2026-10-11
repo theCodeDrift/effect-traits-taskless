@@ -1,0 +1,49 @@
+id: prefer-effect-module-utilities
+valid:
+  - |
+    import { Array } from "effect"
+    const doubled = Array.map(items, (n) => n * 2)
+  - |
+    import { Array, pipe } from "effect"
+    const names = pipe(users, Array.filter((u) => u.active), Array.map((u) => u.name))
+  - |
+    import { String } from "effect"
+    const shout = String.toUpperCase(name)
+  - |
+    import { Record } from "effect"
+    const ks = Record.keys(config)
+  - |
+    import { Effect, Option } from "effect"
+    const program = Effect.map(getUser, (u) => u.id)
+    const id = Option.map(maybeUser, (u) => u.id)
+  - |
+    const out: Array<number> = []
+    for (const n of input) {
+      out.push(n * 2)
+    }
+  - |
+    import path from "node:path"
+    const file = path.join(dir, "index.ts")
+    const posixFile = path.posix.join(dir, "index.ts")
+  - |
+    let acc: Array<string> = []
+    acc = acc.concat(more)
+invalid:
+  - |
+    const doubled = items.map((n) => n * 2)
+  - |
+    const active = users.filter((u) => u.active).map((u) => u.name)
+  - |
+    const csv = row.join(",")
+  - |
+    const shout = name.toUpperCase()
+  - |
+    const parts = line.trim().split(",")
+  - |
+    const ks = Object.keys(config)
+  - |
+    const pairs = Object.entries(config)
+  - |
+    const total = this.items.reduce((a, b) => a + b, 0)
+  - |
+    const has = tags?.includes("x")

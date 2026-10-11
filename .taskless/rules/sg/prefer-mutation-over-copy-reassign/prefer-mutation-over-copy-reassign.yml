@@ -1,0 +1,27 @@
+id: prefer-mutation-over-copy-reassign
+language: TypeScript
+severity: warning
+message: Mutate the local accumulator in place (e.g. `$X.push(value)`) instead of copying and reassigning it.
+note: |
+  Effect has no in-place mutation for arrays, so for a local mutable
+  accumulator prefer the built-in mutation over rebuilding the array on
+  every step:
+
+  - `items = Array.append(items, v)`     → `items.push(v)`
+  - `items = Array.appendAll(items, vs)` → `items.push(...vs)`
+  - `items = Array.prepend(items, v)`    → `items.unshift(v)`
+  - `items = [...items, v]`              → `items.push(v)`
+  - `items = items.concat(vs)`           → `items.push(...vs)`
+
+  Non-accumulator code that builds a *new* value (`const next =
+  Array.append(items, v)`) is fine and is not flagged.
+rule:
+  kind: assignment_expression
+  any:
+    - pattern: $X = Array.append($X, $$$)
+    - pattern: $X = Array.appendAll($X, $$$)
+    - pattern: $X = Array.prepend($X, $$$)
+    - pattern: $X = Array.prependAll($X, $$$)
+    - pattern: $X = [...$X, $$$]
+    - pattern: $X = [$$$, ...$X]
+    - pattern: $X = $X.concat($$$)
