@@ -1,0 +1,7 @@
+{
+  "name": "effect-rules",
+  "private": true,
+  "type": "module",
+  "dependencies": { "effect": "^3.17.0" },
+  "devDependencies": { "typescript": "^5.9.0" }
+}

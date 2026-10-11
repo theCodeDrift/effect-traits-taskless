@@ -1,0 +1,5 @@
+.env.local.json
+/sgconfig.yml
+/.vale.ini
+/.sgconfig.yml
+/.tmp-*
